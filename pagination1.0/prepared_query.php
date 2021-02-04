@@ -2,6 +2,7 @@
 
 function mysqli_prepared_query($link,$sql,$typeDef = FALSE,$params = FALSE)
 { 
+
   $multiQuery = TRUE; 
   if($stmt = mysqli_prepare($link,$sql))
   { 
@@ -14,7 +15,7 @@ function mysqli_prepared_query($link,$sql,$typeDef = FALSE,$params = FALSE)
     { 
       $multiQuery = TRUE; 
     }  
-    
+	
     if($typeDef){ 
       $bindParams = array();    
       $bindParamsReferences = array(); 

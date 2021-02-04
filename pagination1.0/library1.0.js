@@ -1,7 +1,10 @@
 
-        var div_data_container={};
+//alert("library started");
+
+	   var div_data_container={};
         function make_table_pagination(ajax_url,ajax_data,table_div_id,data_per_page,search_enable_or_desiable,input_value,type,reload) 
         {
+			//alert(ajax_url);
 
             var buffer_size= buffer_size || 40;
             var current_page= current_page || 1;
@@ -95,23 +98,26 @@
             }
            
             var flag=0;
-            this.buffer_size_from_to[flag]=""+from+""+","+""+to+"";
-            for (var i = 1; i <page_not_present.length; i++) 
+            //this.buffer_size_from_to[flag]=""+from+""+","+""+to+"";
+            this.buffer_size_from_to[flag]=from+","+to;
+			for (var i = 1; i <page_not_present.length; i++) 
             {   
 
                 if((to+1)==page_not_present[i])
                 {   
                     to=page_not_present[i];
                     from_next=page_not_present[i+1];
-                    this.buffer_size_from_to[flag]=""+from+""+","+""+to+"";
+                    //this.buffer_size_from_to[flag]=""+from+""+","+""+to+"";
+				   this.buffer_size_from_to[flag]=from+","+to;
                 }
                 else
                 {   
                     flag++;
                     to=from_next;
                     from=from_next;
-                    this.buffer_size_from_to[flag]=""+from+""+","+""+to+"";
-                    to=page_not_present[i];
+                    //this.buffer_size_from_to[flag]=""+from+""+","+""+to+"";
+                    this.buffer_size_from_to[flag]=from+","+to;
+					to=page_not_present[i];
                     from_next=page_not_present[i+1];
                 }
                 
@@ -130,33 +136,51 @@
         manage_buffer_SendAjax:function(ajax_data)
         {
   
-
-            $.ajax({ 
+$(document).ready(function(){
+	
+//alert("ready");
+//var xhr=
+$.ajax({ 
                         type:"POST",
                         async: "false",
                         url:ajax_url,
-                        data:ajax_data,
-                        dataType: 'json',
+                        //data:"{" + ajax_data + "}",
+						data:ajax_data,
+                        //dataType: 'json',
                         beforeSend()
                         {
-                           
+							//console.clear();
+							//console.log(ajax_data);
+                           //alert("beforesend xcuted");
                         },
                         success(data)
-                        {    
+                        { 
+						console.clear();
+						console.log(ajax_data);
+//alert("url successfully called");						
                             
                            manage_buffer.manage_buffer_AddData(data);
                            $("#loading").hide();
 
                         },
-                        error: function() 
+               //         error: function(XMLHttpRequest xhr1,int status1,var Message)
+						error: function(jqXHR, textStatus, errorThrown)
                         {
+							alert("error");
+							console.log(errorThrown);
+							console.log(textStatus);
+							console.log(xhr.responseText);
+							//alert(xhr);
                             
                             console.log("Error occured!");
                         }
-                    }); 
+                    });
+});
+             
         },
-        manage_buffer_AddData:function(response)
+        manage_buffer_AddData:function(responseArray)
         {   
+		var response=JSON.parse(responseArray);
             this.data_not_fount='';
             this.date_not_found='';
             this.table_heading_names=response['table_heading_name'];
@@ -218,11 +242,12 @@
 
             var max_page=max_page;
             var pagi_id=manage_html.make_new_table(current_page);
-
+//alert("make new pagination fn called");
             $(document).ready(function()
             { 
-                $("head").append('<script type="text/javascript" src="/./Mock_test_1/pagination1.0/simplePagination.js-master/jquery.simplePagination.js"></script>');
-                $("head").append('<link rel="stylesheet" href="/./Mock_test_1/pagination1.0/simplePagination.js-master/simplePagination.css">');
+			//alert("document ready");
+                $("head").append('<script type="text/javascript" src="pagination1.0/simplePagination.js-master/jquery.simplePagination.js"></script>');
+                $("head").append('<link rel="stylesheet" href="pagination1.0/simplePagination.js-master/simplePagination.css">');
 
                 $("#"+pagi_id).pagination(
                 {      
@@ -231,7 +256,7 @@
                     currentPage: current_page,
                     onPageClick: function (page, event) 
                     {
-
+//this.page.alert("page clicked");
                         
                         current_page=page;
 
@@ -241,8 +266,9 @@
                         var page_not_present=manage_buffer.manage_buffer_WhetherBufferExists(buffer_range)
                         var get_page_range=manage_buffer.manage_buffer_GetPageRange(page_not_present);
                         
-                        ajax_data['buffer_data']=JSON.stringify(get_page_range);
-                        console.log(get_page_range);
+                        //ajax_data['buffer_data']=JSON.stringify(get_page_range);
+                        //console.log(get_page_range);
+						ajax_data['buffer_data']=get_page_range;
                         if(get_page_range!='undefined')
                         {
                             manage_buffer.manage_buffer_SendAjax(ajax_data);
@@ -257,7 +283,8 @@
         },
         make_new_table:function(current_page_new)
         {    
-
+//alert("makenewtable of libraryjs called");
+console.log("makenewtable called");
 
             var tbody_ids=new Array('myTable','myTable1','myTable2','myTable3','myTable4','myTable5');
 
@@ -402,7 +429,9 @@
             var ajax_data = ajax_data || {};
 
                 ajax_data["request"]=type;
-                ajax_data["buffer_data"]=JSON.stringify(get_page_range);
+                //ajax_data["buffer_data"]=JSON.stringify(get_page_range);
+			   //ajax_data["buffer_data"]=get_page_range;
+			   ajax_data["buffer_data"]=buffer_range;
                 ajax_data["data_per_page"]=data_per_page;
                 ajax_data["input_value"]=input_value;
              

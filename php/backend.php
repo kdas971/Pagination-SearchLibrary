@@ -1,8 +1,8 @@
 <?php
 
-	require_once('/Applications/MAMP/htdocs/Mock_test_1/search_library/search.php');
+	require_once('../search_library/search.php');
 
-	require_once('/Applications/MAMP/htdocs/Mock_test_1/pagination1.0/prepared_query.php');
+	require_once('../pagination1.0/prepared_query.php');
 
 
 	$application_obj = new ManageApp();
@@ -11,12 +11,15 @@
 
 	$application_obj->Myconnection ($connection_mock_chat,"localhost","root","Mock_test_db");
 	$table_heading_name=array('Name','Email','Phone Number','Gender');
-	$table_column_name=array('name','email','phoneNum','gender');
+	//$table_column_name=array('name','email','phoneNum','gender');
+	$table_column_name=array('Name','Email','Phone','Gender');
 	$where=1;
 	if($_POST['request'] == 'data')
-	{  
+	{ 
+		//echo "<html><body>request of data is called</body></html>"
 		global $connection_mock_chat;
-	    $buffer_range=json_decode($_POST['buffer_data']);
+	    //$buffer_range=json_decode($_POST['buffer_data']);
+		$buffer_range=$_POST['buffer_data'];//kiran
 	    $data_per_page=$_POST['data_per_page'];
 	    $input=$_POST['input_value'];
 	    $total_length=0;
@@ -29,14 +32,40 @@
 	    $response_data['max_page']=$total_data['max_page'];
 	    $response_data['table_heading_name']=$table_heading_name;
 	    $response_data['table_column_name']=$table_column_name;
+		
 	    echo json_encode($response_data);
+		
 	}
 	elseif ($_POST['request']=='search') 
 	{   
-		global $connection_mock_chat;
+	
+	global $connection_mock_chat;
+	$buffer_range=$_POST['buffer_data'];
+	    $data_per_page=$_POST['data_per_page'];
+	    $input=$_POST['input_value'];
+	    $total_length=0;
+	    $max_page=0;
+		
+		
+		
+			$where="  Name LIKE '%" . $input . "%' OR Email LIKE '%" . $input . "%'";
+		
+	    $response_data=array();
+		$total_data=$application_obj->total_data($connection_mock_chat,$buffer_range,$data_per_page,$where);
+		if (count($total_data)>0)
+		{
+	    $response_data['total_length']=$total_data['total_length'];
+	    $response_data['total_data']=$total_data['total_data'];
+	    $response_data['max_page']=$total_data['max_page'];
+	    $response_data['table_heading_name']=$table_heading_name;
+	    $response_data['table_column_name']=$table_column_name;
+		}
+		echo json_encode($response_data);
+		/*global $connection_mock_chat;
 		global $application_obj;
 	    $params=array();
-	    $buffer_range=json_decode($_POST['buffer_data']);
+	    //$buffer_range=json_decode($_POST['buffer_data']);
+		$buffer_range=$_POST['buffer_data'];
 	    $data_per_page=$_POST['data_per_page'];
 	    $input=$_POST['input_value'];
 	    $total_length=0;
@@ -85,7 +114,7 @@
 	        $response_data['table_heading_name']=$table_heading_name;
 	        $response_data['table_column_name']=$table_column_name;
 	        echo json_encode($response_data);
-	    }
+	    }*/
 
 	}
 	Class ManageApp {
@@ -97,9 +126,11 @@
 
 	        $user='root';
 
-			$connection= mysqli_connect ($host, $user, "root" , $db); 
+			//$connection= mysqli_connect ($host, $user, "root" , $db); 
+			$connection= mysqli_connect ($host, $user, "" , $db); 
 			if (!$connection) 
 			{
+				echo "connection failed";
 				die ( "no connection found" . mysqli_error($connection));
 			}
 			
@@ -107,25 +138,45 @@
 		
 		function total_data($connection_mock_chat,$buffer_range,$data_per_page,$where)
 		{
+			$params=array();
 		    $response_array=array();
-		    $max_page=1;
+		    //$max_page=1;
 		    $test_length=0;
 		    $response_array_data=array();
-		    foreach ($buffer_range as $key => $value) 
-		    { 
-		        $range=explode(',', $value);
-		        $page_from=(int)$range[0];
-		        $page_to=(int)$range[1];
-		        $data_from=$page_from*$data_per_page-$data_per_page;
-		        $data_to=$page_to-$page_from;
-		        $data_to=($data_to*$data_per_page)+$data_per_page;
-		        $data=$this->get_data($connection_mock_chat,$data_from,$data_to,$data_per_page,$where);
+			
+			//$max_page='';
+		    $query="SELECT COUNT(*)as total_row FROM mock_test_tbl WHERE ".$where;
+	        $total_row= mysqli_prepared_query($connection_mock_chat,$query,"",$params);
+	        $total_length=$total_row[0]['total_row'];
+			if($total_length==0)
+				return $response_array;
+	        $max_page=ceil($total_length/$data_per_page);
+			
+		    //foreach ($buffer_range as $key => $value) 
+		    //{ 
+		        //$range=explode(',', $value);
+		        $page_from=(int)$buffer_range[0];
+		        $page_to=(int)$buffer_range[1];
+				//for($i=$buffer_range[0];$i<=$buffer_range[1];$i++)
+					for($i=$buffer_range[0];$i<=$max_page;$i++)
+				{
+		        //$data_from=$page_from*$data_per_page-$data_per_page;
+				$data_from=$i*$data_per_page-$data_per_page;
+				$data_to=$i*$data_per_page-1;
+		        //$data_to=$page_to-$page_from;
+		        //$data_to=($data_to*$data_per_page)+$data_per_page;
+				
+		        $data=$this->get_data($connection_mock_chat,$data_from,$data_to,$data_per_page,$where,$total_length,$max_page);
+				
+			
 		        if(!empty($data))
 		        {
 		            $max_page=$data[0]['max_page'];
-		            $from=0;
-		            $to=9;
-		            if((int)$max_page<5)
+		            //$from=0;
+		            //$to=9;
+		            $from=$data_from;
+					$to=$data_to;
+					if((int)$max_page<5)
 		            {
 		               $page_to=(int)$max_page;
 		            }
@@ -138,8 +189,9 @@
 		                $page_to=(int)$max_page;
 		            }
 		            $test_length=$data[0]['total_length'];
+					
 		            $flage=$data_per_page;
-		            for ($i=$page_from; $i <=$page_to; $i++) 
+		           /* for ($i=$page_from; $i <=$page_to; $i++) 
 		            {   
 		                if($i*$data_per_page>$test_length)
 		                {
@@ -160,32 +212,52 @@
 		                $from=$from+$data_per_page;
 		                $to=$to+$data_per_page;
 		                $flage=$flage+$data_per_page; 
-		            }
-		        
+		            }*/
+						$per_page_array=array();
+		                //for ($j=0; $j<=9; $j++)
+						for($j=0;$j<count($data);$j++)							
+		                { 
+		                    array_push($per_page_array,$data[$j]);
+		                    
+		                }
+		                $response_array[$i]=$per_page_array;
 		        }
 		    $response_array_data['total_length']=$test_length;
 		    $response_array_data['max_page']=$max_page;
 		    $response_array_data['total_data']=$response_array;  
+			//$response_array_data['total_data']=$data;  
 		    }
+			
 		    return $response_array_data;
 		}  
 
-
-		function get_data($connection_mock_chat,$data_from,$data_to,$data_per_page,$where)
+//pagewise data display
+		//function get_data($connection_mock_chat,$data_from,$data_to,$data_per_page,$where)
+		function get_data($connection_mock_chat,$data_from,$data_to,$data_per_page,$where,$total_length,$max_page)
 		{   
 		    $response=array();
 		    $params=array();
-		    $max_page='';
+			
+			//commented by kiran
+		    /*$max_page='';
 		    $query="SELECT COUNT(*)as total_row FROM mock_test_tbl WHERE ".$where;
 	        $total_row= mysqli_prepared_query($connection_mock_chat,$query,"",$params);
 	        $total_length=$total_row[0]['total_row'];
 	        $max_page=ceil($total_length/$data_per_page);
-		        
-		    $query="SELECT * FROM mock_test_tbl WHERE ".$where."  LIMIT ?,?";
-		    	
-		    $params = array($data_from,$data_to);
+		      */
+//comment end by kiran
 
-        	$extra_slots_entry= mysqli_prepared_query($connection_mock_chat,$query,"ii",$params);
+			  
+		    //$query="SELECT * FROM mock_test_tbl WHERE ".$where."  LIMIT ?,?";
+			$query="SELECT * FROM mock_test_tbl WHERE ".$where."  LIMIT " .$data_from.",".$data_per_page ;
+			
+			
+		    $params = array($data_from,$data_to);
+			//$params = array($data_from,$data_per_page);
+        	//$extra_slots_entry= mysqli_prepared_query($connection_mock_chat,$query,"ii",$params);
+			$extra_slots_entry= mysqli_prepared_query($connection_mock_chat,$query,"",$params);
+			//echo count($extra_slots_entry);
+			
 		        if($extra_slots_entry)
 		        {
 		            foreach ($extra_slots_entry as $val)
@@ -193,14 +265,14 @@
 		                $res_here=$val;
 		                $res_here['max_page']=$max_page;
 		                $res_here['total_length'] =$total_length;
-		                $Name=$val['name'];
-		                $Email=$val['email'];
-		                $phoneNum=$val['phone'];
-		                $Gender=$val['gender'];
-		                $res_here['name']=$Name;
-		                $res_here['email']=$Email;
-		                $res_here['phoneNum']=$phoneNum;
-		                $res_here['gender']=$Gender;
+		                $Name=$val['Name'];
+		                $Email=$val['Email'];
+		                $phoneNum=$val['Phone'];
+		                $Gender=$val['Gender'];
+		                $res_here['Name']=$Name;
+		                $res_here['Email']=$Email;
+		                $res_here['Phone']=$phoneNum;
+		                $res_here['Gender']=$Gender;
 		                $response[]=$res_here;   
 		            }
 		        } 
